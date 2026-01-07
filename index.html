@@ -3,7 +3,7 @@
 <head>
   <base href="https://cdn.jsdelivr.net/gh/Fortnitepooppoouuu/gzip_wgl@latest/">
   <meta charset="utf-8">
-  <title>Unity WebGL Player | Gzip Demo</title>
+  <title>Unity WebGL Player | Gzip Hacky Fix</title>
   <link rel="stylesheet" href="TemplateData/style.css">
   <style>
     body { margin:0; padding:0; background:#231F20; }
@@ -22,12 +22,29 @@
     </div>
   </div>
 
+  <!-- Pako library for gzip decompression -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+
   <script>
+    const loadingText = document.querySelector("#loading-text");
+
+    async function fetchAndUngzip(url) {
+      const response = await fetch(url);
+      const compressed = new Uint8Array(await response.arrayBuffer());
+      const decompressed = pako.ungzip(compressed); // returns Uint8Array
+      return new Blob([decompressed]);
+    }
+
     (async () => {
+      // Decompress each file
+      const dataBlob = await fetchAndUngzip("Build/giz.data.gz");
+      const wasmBlob = await fetchAndUngzip("Build/giz.wasm.gz");
+      const frameworkBlob = await fetchAndUngzip("Build/giz.framework.js.gz");
+
       const config = {
-        dataUrl: "Build/giz.data.gz",
-        frameworkUrl: "Build/giz.framework.js.gz",
-        codeUrl: "Build/giz.wasm.gz",
+        dataUrl: URL.createObjectURL(dataBlob),
+        frameworkUrl: URL.createObjectURL(frameworkBlob),
+        codeUrl: URL.createObjectURL(wasmBlob),
         streamingAssetsUrl: "StreamingAssets",
         companyName: "YourName",
         productName: "Gzip Demo",
@@ -45,7 +62,7 @@
         createUnityInstance(canvas, config, (progress) => {
           progressBarFull.style.width = (progress * 100) + "%";
         }).then(() => {
-          document.querySelector("#loading-text").remove();
+          loadingText.remove();
         });
       };
       document.body.appendChild(script);
